@@ -1,6 +1,6 @@
 ### Requirements
 
-- $TERM that supports true color
+- `$TERM` that supports true color
 
 - [libsrsirc](https://github.com/fstd/libsrsirc)
 
