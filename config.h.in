@@ -1,0 +1,43 @@
+static Config config = {
+        .networks = {
+                {
+                        .name = "freenode",
+                        .server = "chat.freenode.net",
+                        .port = 6667,
+
+                        .auto_connect = true,
+
+                        .nick = "YOUR_NICK_HERE",
+                        .user = "YOUR_USER_HERE",
+
+                        .sasl = {
+                                .mechanism = "PLAIN",
+                                .key = "printf 'YOUR_USER\0YOUR_USER\0YOUR_NICKSERV_PASS' | base64"
+                        },
+
+                        .channels = {
+                                "##programming",
+                                "##posix",
+                        }
+                },
+                {
+                        .name = "snoonet",
+                        .server = "irc.snoonet.org",
+                        .port = 6667,
+
+                        .auto_connect = true,
+
+                        .nick = "YOUR_NICK_HERE",
+                        .user = "YOUR_USER_HERE",
+
+                        .sasl = {
+                                .mechanism = "PLAIN",
+                                .key = "printf 'YOUR_USER\0YOUR_USER\0YOUR_NICKSERV_PASS' | base64"
+                        },
+
+                        .channels = {
+                                "#relationshipanxiety"
+                        }
+                },
+        },
+};
