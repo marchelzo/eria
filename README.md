@@ -1,6 +1,6 @@
 ### Requirements
 
-- `$TERM` that supports true color
+- `$TERM` that supports [true color](https://gist.github.com/XVilka/8346728)
 
 - [libsrsirc](https://github.com/fstd/libsrsirc)
 
