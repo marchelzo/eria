@@ -1,10 +1,10 @@
 ### Requirements
 
-        - $TERM that supports true color
+- $TERM that supports true color
 
-        - [libsrsirc](https://github.com/fstd/libsrsirc)
+- [libsrsirc](https://github.com/fstd/libsrsirc)
 
-        - [libtermkey](http://www.leonerd.org.uk/code/libtermkey/)
+- [libtermkey](http://www.leonerd.org.uk/code/libtermkey/)
 
 ### Instructions
 
