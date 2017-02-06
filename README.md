@@ -1,4 +1,12 @@
-make sure $TERM supports true color. also
-you need [libsrsirc](https://github.com/fstd/libsrsirc).
+### Requirements
 
-edit config.h.in and rename it to config.h then run make
+        - $TERM that supports true color
+
+        - [libsrsirc](https://github.com/fstd/libsrsirc)
+
+        - [libtermkey](http://www.leonerd.org.uk/code/libtermkey/)
+
+### Instructions
+
+Edit `config.h.in`, rename it to `config.h`, then run `make`.
+If all goes well, you'll get a binary called `eria`.
