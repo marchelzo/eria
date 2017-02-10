@@ -307,32 +307,32 @@ draw_message(Window *w, Message *m, int row)
 static void
 draw_rooms(Eria *state)
 {
-        Color fg = { 220, 220, 220 };
         Color bg = { 40, 40, 40 };
-        Color activity = { 216, 139, 252 };
         Color current = { 80, 80, 80 };
+
+        Color fgs[] = {
+                [A_NONE]      = { 220, 220, 220 },
+                [A_NORMAL]    = { 125, 185, 245 },
+                [A_IMPORTANT] = { 255, 145, 255 },
+        };
 
         term_move(&term, 0, 0);
         int row = 1;
 
         Video v = V_NORMAL;
-        v.fg = fg;
         v.bg = bg;
 
         for (int i = 0; i < state->networks.count; ++i) {
                 Network *network = state->networks.items[i];
                 for (int i = 0; i < network->buffers.count; ++i) {
                         Buffer *b = network->buffers.items[i];
-                        if (b->activity)
-                                v.fg = activity;
+                        v.fg = fgs[b->activity];
                         if (b == state->window->buffer)
                                 v.bg = current;
                         if (b->type == B_SERVER)
                                 term_mvprintf(&term, row++, 2, v, " %-24s", network->name);
                         else
                                 term_mvprintf(&term, row++, 2, v, "     %-20s", b->name);
-                        if (b->activity)
-                                v.fg = fg;
                         if (b == state->window->buffer)
                                 v.bg = bg;
                 }

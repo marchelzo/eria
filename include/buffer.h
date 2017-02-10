@@ -12,7 +12,7 @@ typedef struct eria Eria;
 
 typedef struct buffer {
         enum { B_CHANNEL, B_SERVER, B_USER } type;
-        enum { A_IMPORTANT, A_NORMAL, A_NONE } activity;
+        enum { A_NONE, A_NORMAL, A_IMPORTANT } activity;
         char *name;
         Network *network;
         vec(Message *) messages;

@@ -65,12 +65,12 @@ bell(void)
 }
 
 static bool
-activity(Eria const *state)
+important(Eria const *state)
 {
         for (int i = 0; i < state->networks.count; ++i) {
                 Network *network = state->networks.items[i];
                 for (int i = 0; i < network->buffers.count; ++i)
-                        if (network->buffers.items[i]->activity)
+                        if (network->buffers.items[i]->activity == A_IMPORTANT)
                                 return true;
         }
 
@@ -207,8 +207,10 @@ react(Eria *state, Network *network, tokarr tokens)
                 m->important = mentions_me;
 
                 if ((b->type == B_USER || m->important) && b != state->window->buffer) {
-                        b->activity = true;
+                        b->activity = A_IMPORTANT;
                         bell();
+                } else if (b->activity == A_NONE) {
+                        b->activity = A_NORMAL;
                 }
 
                 buffer_add(b, state, m);
@@ -443,7 +445,7 @@ clear_activity(Window *w)
                 clear_activity(w->two);
                 break;
         default:
-                w->buffer->activity = false;
+                w->buffer->activity = A_NONE;
         }
 }
 
@@ -562,7 +564,7 @@ main(void)
 
                 clear_activity(state.root);
 
-                state.draw_rooms = activity(&state) || state.redraw_timeout != -1;
+                state.draw_rooms = important(&state) || state.redraw_timeout != -1;
                 ui_draw(&state);
         }
 

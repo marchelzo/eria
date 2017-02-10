@@ -11,6 +11,7 @@ buffer_new(char const *name, Network *network, int type)
         b->name = sclone(name);
         b->network = network;
         b->cursor = 0;
+        b->activity = A_NONE;
         b->type = type;
         b->tsm = tsmap_new();
         vec_init(b->messages);
