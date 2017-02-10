@@ -2,6 +2,7 @@
 #define ERIA_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <libsrsirc/irc.h>
 #include <poll.h>
 #include <termkey.h>
@@ -35,9 +36,10 @@ typedef struct {
 
 typedef struct {
         NetworkConfig networks[ERIA_MAX_NETWORKS + 1];
+        intmax_t room_list_timeout;
 } Config;
 
-typedef struct {
+typedef struct eria {
         Config *config;
         struct pollfd fds[1 + ERIA_MAX_NETWORKS];
         TermKey *tk;
@@ -47,8 +49,8 @@ typedef struct {
         } networks;
         Window *window;
         Window *root;
-        bool complete_again;
-        bool resize;
+        intmax_t redraw_timeout;
+        bool draw_rooms;
 } Eria;
 
 Message *

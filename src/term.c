@@ -73,6 +73,14 @@ render(Term *t, char const *s)
 }
 
 inline static void
+render_forward(Term *t, int n)
+{
+        char buffer[64];
+        snprintf(buffer, sizeof buffer, "\033[%dC", n);
+        render(t, buffer);
+}
+
+inline static void
 render_video(Term *t)
 {
         char buffer[128];
@@ -130,17 +138,38 @@ skip_empty(Term * const t, int y, int x)
         return n;
 }
 
+/* did row `y` change since last redraw? */
+inline static bool
+changed(Term const *t, int y)
+{
+        for (int x = 0; x < t->cols; ++x)
+                if (!cell_equal(&CELL(t, y, x), &ALT_CELL(t, y, x)))
+                        return true;
+        return false;
+}
+
 static void
 render_line(Term *t, int y)
 {
+        if (!changed(t, y))
+                return;
+
+        if (!video_equal(t->video, V_NORMAL)) {
+                t->video = V_NORMAL;
+                render_video(t);
+        }
+
+        render_move(t, y, 0);
+        render(t, "\033[2K");
+
         int x = 0;
 
         for (;;) {
                 int skip = skip_empty(t, y, x);
                 if (x + skip == t->cols)
                         break;
-                if (x == 0 || skip > 0)
-                        render_move(t, y, x + skip);
+                if (skip > 0)
+                        render_forward(t, skip);
                 x += skip;
                 t->video = CELL(t, y, x).video;
                 render_video(t);
@@ -152,7 +181,7 @@ render_line(Term *t, int y)
 void
 term_resize(Term *t, int rows, int cols)
 {
-        size_t size = sizeof (Cell) * rows * cols;
+        size_t size = sizeof (Cell[rows * cols]);
 
         resize(t->buffers[0], size);
         resize(t->buffers[1], size);
@@ -177,6 +206,11 @@ term_init(Term *t, int rows, int cols)
         t->video = V_NORMAL;
         vec_init(t->buffer);
         term_resize(t, rows, cols);
+        /*
+         * Clear the screen before the first render so that
+         * we start in a known state.
+         */
+        render(t, "\033[2J");
 }
 
 void
@@ -244,14 +278,15 @@ term_clear(Term *t)
 void
 term_flush(Term *t)
 {
-        render(t, "\033[2J");
-
         for (int y = 0; y < t->rows; ++y)
                 render_line(t, y);
         
         render_move(t, t->y, t->x);        
         
         flush(t);
+
+        size_t size = sizeof (Cell[t->rows * t->cols]);
+        memcpy(t->buffers[!t->i], t->buffers[t->i], size);
 
         t->i += 1;
 }

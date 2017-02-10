@@ -29,6 +29,7 @@ struct window {
                 struct {
                         Buffer *buffer;
                         int scroll;
+                        bool resize;
                 };
         };
 };

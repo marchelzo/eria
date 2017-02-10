@@ -176,7 +176,7 @@ utf8_next(char const *str, int *w)
                 str += bytes;
         }
 
-        return n;
+        return (n == 0) ? 1 : n;
 }
 
 #endif

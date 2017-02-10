@@ -24,6 +24,7 @@ new(Window *parent, int height, int width, int y, int x)
         w->x = x;
         w->buffer = NULL;
         w->scroll = 0;
+        w->resize = false;
 
         return w;
 }
@@ -273,6 +274,7 @@ window_hsplit(Window *w, Buffer *b, int size)
 
         Buffer *old = w->buffer;
         int scroll = w->scroll;
+        bool resize = w->resize;
 
         w->type = W_HS;
         w->top = new(w, th, w->width, w->y, w->x);
@@ -280,6 +282,7 @@ window_hsplit(Window *w, Buffer *b, int size)
 
         w->top->scroll = scroll;
         w->top->buffer = old;
+        w->top->resize = resize;
         w->bot->buffer = b;
 }
 
@@ -322,6 +325,7 @@ window_delete(Window *w)
         if (sibling->type == W_W) {
                 parent->buffer = sibling->buffer;
                 parent->scroll = sibling->scroll;
+                parent->resize = sibling->resize;
         } else {
                 parent->one = sibling->one;
                 parent->two = sibling->two;

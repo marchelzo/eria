@@ -340,13 +340,13 @@ draw_rooms(Eria *state)
 }
 
 static void
-draw_window(Window *w)
+draw_window(Window *w, int *y, int *x)
 {
         switch (w->type) {
         case W_VS:
         case W_HS:
-                draw_window(w->one);
-                draw_window(w->two);
+                draw_window(w->one, y, x);
+                draw_window(w->two, y, x);
                 break;
         default:;
                 Buffer *b = w->buffer;
@@ -378,6 +378,12 @@ draw_window(Window *w)
                         status[0] = '\0';
                 }
 
+                if (w->scroll > 0)
+                        strcat(status, " (scroll)");
+
+                if (w->resize)
+                        strcat(status, " (resize)");
+
                 int n = strlen(status);
                 int width = utf8_width(status, n);
                 while (width++ < w->width)
@@ -385,8 +391,8 @@ draw_window(Window *w)
                 status[n] = '\0';
 
                 Video v = V_NORMAL;
-                v.fg = (Color) { 240, 240, 240 };
-                v.bg = (Color) { 50, 50, 50    };
+                v.fg = (Color) { 235, 235, 235 };
+                v.bg = (Color) { 45, 45, 45    };
 
                 term_move(&term, w->y + w->height - 2, w->x);
                 term_write(&term, v, status);
@@ -397,7 +403,7 @@ draw_window(Window *w)
 
                 v = V_NORMAL;
 
-                term_mvprintf(&term, w->y + w->height - 1, w->x, v, "[%s] ", nick);
+                term_mvprintf(&term, w->y + w->height - 1, w->x, v, "(%s) ", nick);
 
                 if (b->input.count != 0) {
                         for (int i = 0; i < b->input.count; ++i) {
@@ -409,10 +415,27 @@ draw_window(Window *w)
 
                         vec_push(input, '\0');
 
-                        term_write(&term, v, input.items);
-                        term_mvprintf(&term, w->y + w->height - 1, w->x, v, "[%s] ", nick);
-                        input.items[cursor] = '\0';
-                        term_write(&term, v, input.items);
+                        char *s = input.items;
+                        int cx = utf8_width(s, cursor);
+                        int prompt_width = utf8_width(nick, strlen(nick)) + 3;
+                        int space = w->width - prompt_width;
+                        int step = space / 2;
+
+                        int offset = 0;
+                        while (cx - offset >= space)
+                                offset += step;
+
+
+                        s += utf8_fit(s, strlen(s), offset);
+                        s[utf8_fit(s, strlen(s), space)] = '\0';
+
+                        term_write(&term, v, s);
+
+                        *y = w->y + w->height - 1;
+                        *x = w->x + prompt_width + cx - offset;
+                } else {
+                        *y = w->y + w->height - 1;
+                        *x = w->x + strlen(nick) + 3;
                 }
         }
 }
@@ -421,8 +444,15 @@ void
 ui_draw(Eria *state)
 {
         term_clear(&term);
-        draw_window(state->root);
-        draw_window(state->window);
+
+        int y, x;
+        draw_window(state->root, &y, &x);
+        draw_window(state->window, &y, &x);
+
+        if (state->draw_rooms)
+                draw_rooms(state);
+
+        term_move(&term, y, x);
         term_flush(&term);
 }
 
@@ -437,4 +467,18 @@ ui_init(Eria *state)
         tcgetattr(STDIN_FILENO, &tp);
         tp.c_lflag &= ~ECHO;
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &tp);
+
+        /* put the terminal into alternate screen mode */
+        char s[] = "\033[?1049h";
+        write(STDOUT_FILENO, s, sizeof s - 1);
+}
+
+void
+ui_cleanup(void)
+{
+        /* take the terminal out of alternate screen mode */
+        char s[] = "\033[?1049l";
+        write(STDOUT_FILENO, s, sizeof s - 1);
+        term_clear(&term);
+        term_flush(&term);
 }

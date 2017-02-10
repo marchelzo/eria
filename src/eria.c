@@ -1,9 +1,10 @@
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
 #include <poll.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
 #include <termkey.h>
 #include <time.h>
 #include <sys/time.h>
@@ -13,6 +14,7 @@
 #include <libsrsirc/util.h>
 
 #include "eria.h"
+#include "tsmap.h"
 #include "buffer.h"
 #include "config.h"
 #include "panic.h"
@@ -23,9 +25,7 @@
 #include "util.h"
 #include "log.h"
 
-static Color const quit_color = { 240, 60, 60 };
-static Color const join_color = { 60, 240, 60 };
-static Color const misc_color = { 233, 45, 250 };
+static Eria *_state;
 
 static void *
 try_connect(void *ctx)
@@ -104,10 +104,12 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
                 reason = va_arg(ap, char const *);
                 m = msg(
                         "^<--^",
-                        "^%s^ has quit (%s)",
-                        quit_color,
+                        "^%s^ (%s) ^has quit^ (%s)",
+                        C_QUIT,
                         ui_nick_color(nick),
+                        C_QUIT_TEXT,
                         nick,
+                        ident,
                         reason
                 );
                 break;
@@ -116,7 +118,7 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
                 m = msg(
                         "^--^",
                         "^%s^ is now known as ^%s^",
-                        misc_color,
+                        C_MISC,
                         ui_nick_color(old),
                         ui_nick_color(nick),
                         old,
@@ -130,10 +132,11 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
                         Buffer *buffer = chans.items[i].tag;
                         if (buffer != NULL) switch (type) {
                         case ALL_CHANS_QUIT:
-                                vec_push(buffer->messages, m);
+                                buffer_add(buffer, _state, m);
                                 break;
                         case ALL_CHANS_NICK:
-                                vec_push(buffer->messages, m);
+                                tsmap_update(buffer->tsm, nick);
+                                buffer_add(buffer, _state, m);
                                 break;
                         }
                 }
@@ -164,7 +167,7 @@ react(Eria *state, Network *network, tokarr tokens)
         }
 
         Message *raw_msg = msg("[server]", "%s", raw);
-        vec_push(network->buffers.items[0]->messages, raw_msg);
+        buffer_add(network->buffers.items[0], state, raw_msg);
 
 #define CASE(s) if (strcmp(tokens[1], #s) == 0) {
 #define END     return; }
@@ -196,7 +199,7 @@ react(Eria *state, Network *network, tokarr tokens)
 
                 char action[] = "\001ACTION";
                 if (strncmp(tokens[3], action, sizeof action - 1) == 0) {
-                        m = msg("^\\*^", "^%s^ %s", misc_color, ui_nick_color(nick), nick, tokens[3] + sizeof action - 1);
+                        m = msg("^\\*^", "^%s^ %s", C_MISC, ui_nick_color(nick), nick, tokens[3] + sizeof action);
                 } else {
                         m = msg("^%s^", "%s", ui_nick_color(nick), nick, tokens[3]);
                 }
@@ -208,7 +211,8 @@ react(Eria *state, Network *network, tokarr tokens)
                         bell();
                 }
 
-                vec_push(b->messages, m);
+                buffer_add(b, state, m);
+                tsmap_update(b->tsm, nick);
         END
 
         CASE(JOIN)
@@ -222,13 +226,15 @@ react(Eria *state, Network *network, tokarr tokens)
                         irc_chan(ctx, &chan, tokens[2]);
                         Buffer *b = chan.tag;
                         if (b != NULL) {
-                                vec_push(
-                                        b->messages,
+                                buffer_add(
+                                        b,
+                                        state,
                                         msg(
                                                 "^-->^",
-                                                "^%s^ (%s) has joined %s",
-                                                join_color,
+                                                "^%s^ (%s) ^has joined^ %s",
+                                                C_JOIN,
                                                 ui_nick_color(nick),
+                                                C_JOIN_TEXT,
                                                 nick,
                                                 tokens[0],
                                                 b->name
@@ -244,13 +250,15 @@ react(Eria *state, Network *network, tokarr tokens)
                         irc_chan(ctx, &chan, tokens[2]);
                         Buffer *b = chan.tag;
                         if (b != NULL) {
-                                vec_push(
-                                        b->messages,
+                                buffer_add(
+                                        b,
+                                        state,
                                         msg(
                                                 "^<--^",
-                                                "^%s^ (%s) has left %s: ",
-                                                quit_color,
+                                                "^%s^ (%s) ^has left^ %s (%s)",
+                                                C_QUIT,
                                                 ui_nick_color(nick),
+                                                C_QUIT_TEXT,
                                                 nick,
                                                 tokens[0],
                                                 b->name,
@@ -262,7 +270,74 @@ react(Eria *state, Network *network, tokarr tokens)
         END
 
         CASE(MODE)
+                chanrep chan;
+                if (irc_chan(ctx, &chan, tokens[2]) != NULL) /* channel mode */ {
+                        Buffer *b = chan.tag;
+                        assert(b != NULL);
 
+                        char mode_params[512];
+                        mode_params[0] = '\0';
+                        for (int i = 4; tokens[i] != NULL; ++i) {
+                                strcat(mode_params, " " + (i == 4));
+                                strcat(mode_params, tokens[i]);
+                        }
+
+                        Message *m = msg(
+                                "^--^",
+                                "^%s^ sets mode *_%s_ %s* for %s",
+                                C_MISC,
+                                ui_nick_color(nick),
+                                nick,
+                                tokens[3],
+                                mode_params,
+                                b->name
+                        );
+                        buffer_add(b, state, m);
+                } else /* user mode */ {
+                        Buffer *b = network->buffers.items[0];
+                        Message *m = msg(
+                                "^--^",
+                                "^%s^ sets mode *_%s_* for ^%s^",
+                                C_MISC,
+                                ui_nick_color(nick),
+                                ui_nick_color(tokens[2]),
+                                nick,
+                                tokens[3],
+                                tokens[2]
+                        );
+                        buffer_add(b, state, m);
+                }
+        END
+
+        CASE(KICK)
+                chanrep chan;
+                assert(irc_chan(ctx, &chan, tokens[2]) != NULL);
+                Buffer *b = chan.tag;
+                assert(b != NULL);
+                Message *m =
+                        (tokens[0] == NULL)
+                      ? msg(
+                                "^<--^",
+                                "^%s^ was ^*_/kicked/_*^ from %s",
+                                C_QUIT,
+                                ui_nick_color(tokens[3]),
+                                C_QUIT,
+                                tokens[3],
+                                b->name
+                        )
+                      : msg(
+                                "^<--^",
+                                "^%s^ was ^*_/kicked/_*^ from %s by ^%s^",
+                                C_QUIT,
+                                ui_nick_color(tokens[3]),
+                                C_QUIT,
+                                ui_nick_color(nick),
+                                tokens[3],
+                                b->name,
+                                nick
+                        )
+                ;
+                buffer_add(b, state, m);
         END
 
         CASE(NICK)
@@ -274,7 +349,10 @@ react(Eria *state, Network *network, tokarr tokens)
         END
 
         CASE(PING)
-                irc_printf(ctx, "PONG");
+                if (tokens[2] == NULL)
+                        irc_printf(ctx, "PONG");
+                else
+                        irc_printf(ctx, "PONG :%s", tokens[2]);
         END
 #undef END
 #undef CASE
@@ -355,31 +433,47 @@ configure(Eria *state, Config *config)
         }
 }
 
+static void
+clear_activity(Window *w)
+{
+        switch (w->type) {
+        case W_VS:
+        case W_HS:
+                clear_activity(w->one);
+                clear_activity(w->two);
+                break;
+        default:
+                w->buffer->activity = false;
+        }
+}
+
+/* time in ms since last call to elapsed() */
+static intmax_t
+elapsed(void)
+{
+        static struct timeval last;
+        struct timeval now;
+
+        gettimeofday(&now, NULL);
+
+        uintmax_t dt = 1000ULL * (now.tv_sec - last.tv_sec)
+                     + (now.tv_usec - last.tv_usec) / 1000ULL;
+
+        last = now;
+
+        return dt;
+}
+
 int
 main(void)
 {
         Eria state = { .fds = { { .fd = STDIN_FILENO, .events = POLLIN } } };
+        _state = &state;
         configure(&state, &config);
+
+        /* initialize elapsed()'s state */
+        elapsed();
         
-        /*
-        Network *network = state.networks.items[0];
-
-        Room *r1 = room_new("room1", network, RM_SERVER);
-        Room *r2 = room_new("room2", network, RM_USER);
-
-        vec_push(network->rooms, r1);
-        vec_push(network->rooms, r2);
-
-        Message *m1 = message_new("Foo", "\x03""4Hello world");
-        Message *m2 = message_new("Foobar", "                         dfsdkfb dhsbfhjdbs hjsdbf bhjbafjs bhjbasd : fsd fkn * ahsbdhjb asjdb abhjsdjabs d asjbd  Hi. \x03""4Hello world");
-
-        vec_push(r1->messages, m1);
-        vec_push(r2->messages, m1);
-
-        vec_push(r1->messages, m2);
-        vec_push(r2->messages, m2);
-        */
-
         ui_init(&state);
         state.window = state.root;
         state.root->buffer = state.networks.items[0]->buffers.items[0];
@@ -436,9 +530,15 @@ main(void)
                         state.fds[1 + i].events = POLLIN;
                 }
 
-                int r = poll(state.fds, 1 + state.networks.count, -1);
+                int r = poll(state.fds, 1 + state.networks.count, state.redraw_timeout);
                 if (r == -1)
                         continue;
+
+                intmax_t dt = elapsed();
+                if (dt >= state.redraw_timeout)
+                        state.redraw_timeout = -1;
+                else
+                        state.redraw_timeout -= dt;
 
                 /* check if there is anything on stdin */
                 if (state.fds[0].revents & POLLIN) {
@@ -456,13 +556,14 @@ main(void)
                 }
 
                 /* check for messages from the ircds we're connected to */
-                static tokarr tokens;
                 for (int i = 0; i < state.networks.count; ++i)
                         if (state.fds[1 + i].revents & POLLIN)
                                 consume(&state, state.networks.items[i]);
 
+                clear_activity(state.root);
+
+                state.draw_rooms = activity(&state) || state.redraw_timeout != -1;
                 ui_draw(&state);
-                state.window->buffer->activity = false;
         }
 
         return 0;
