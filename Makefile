@@ -1,5 +1,5 @@
 CFLAGS  = -std=c11 -ggdb3 -Wall -isystem /usr/local/opt/ncurses/include -isystem /usr/local/include -Wno-unused -fmax-errors=1 -Iinclude -I.
-LDFLAGS = -L/usr/local/lib -ltermkey -lsrsirc
+LDFLAGS = -L/usr/local/lib -ltermkey -lsrsirc -lm
 
 MAX_NETWORKS ?= 16
 MAX_AUTOJOIN ?= 16
