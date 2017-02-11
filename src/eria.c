@@ -104,12 +104,12 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
                 reason = va_arg(ap, char const *);
                 m = msg(
                         "^<--^",
-                        "^%s^ (%s) ^has quit^ (%s)",
+                        "^%^ (%) ^has quit^ (%)",
                         C_QUIT,
                         ui_nick_color(nick),
-                        C_QUIT_TEXT,
                         nick,
                         ident,
+                        C_QUIT_TEXT,
                         reason
                 );
                 break;
@@ -117,11 +117,11 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
                 old = va_arg(ap, char const *);
                 m = msg(
                         "^--^",
-                        "^%s^ is now known as ^%s^",
+                        "^%^ is now known as ^%^",
                         C_MISC,
                         ui_nick_color(old),
-                        ui_nick_color(nick),
                         old,
+                        ui_nick_color(nick),
                         nick
                 );
                 break;
@@ -166,7 +166,7 @@ react(Eria *state, Network *network, tokarr tokens)
                 strcat(raw, tokens[i]);
         }
 
-        Message *raw_msg = msg("[server]", "%s", raw);
+        Message *raw_msg = msg("[server]", "%", raw);
         buffer_add(network->buffers.items[0], state, raw_msg);
 
 #define CASE(s) if (strcmp(tokens[1], #s) == 0) {
@@ -199,9 +199,9 @@ react(Eria *state, Network *network, tokarr tokens)
 
                 char action[] = "\001ACTION";
                 if (strncmp(tokens[3], action, sizeof action - 1) == 0) {
-                        m = msg("^\\*^", "^%s^ %s", C_MISC, ui_nick_color(nick), nick, tokens[3] + sizeof action);
+                        m = msg("^\\*^", "^%^ %", C_MISC, ui_nick_color(nick), nick, tokens[3] + sizeof action);
                 } else {
-                        m = msg("^%s^", "%s", ui_nick_color(nick), nick, tokens[3]);
+                        m = msg("^%^", "%", ui_nick_color(nick), nick, tokens[3]);
                 }
 
                 m->important = mentions_me;
@@ -233,12 +233,12 @@ react(Eria *state, Network *network, tokarr tokens)
                                         state,
                                         msg(
                                                 "^-->^",
-                                                "^%s^ (%s) ^has joined^ %s",
+                                                "^%^ (%) ^has joined^ %",
                                                 C_JOIN,
                                                 ui_nick_color(nick),
-                                                C_JOIN_TEXT,
                                                 nick,
                                                 tokens[0],
+                                                C_JOIN_TEXT,
                                                 b->name
                                         )
                                 );
@@ -257,12 +257,12 @@ react(Eria *state, Network *network, tokarr tokens)
                                         state,
                                         msg(
                                                 "^<--^",
-                                                "^%s^ (%s) ^has left^ %s (%s)",
+                                                "^%^ (%) ^has left^ % (%)",
                                                 C_QUIT,
                                                 ui_nick_color(nick),
-                                                C_QUIT_TEXT,
                                                 nick,
                                                 tokens[0],
+                                                C_QUIT_TEXT,
                                                 b->name,
                                                 tokens[3]
                                         )
@@ -286,7 +286,7 @@ react(Eria *state, Network *network, tokarr tokens)
 
                         Message *m = msg(
                                 "^--^",
-                                "^%s^ sets mode *_%s_ %s* for %s",
+                                "^%^ sets mode *_%_ %* for %",
                                 C_MISC,
                                 ui_nick_color(nick),
                                 nick,
@@ -299,12 +299,12 @@ react(Eria *state, Network *network, tokarr tokens)
                         Buffer *b = network->buffers.items[0];
                         Message *m = msg(
                                 "^--^",
-                                "^%s^ sets mode *_%s_* for ^%s^",
+                                "^%^ sets mode *_%_* for ^%^",
                                 C_MISC,
                                 ui_nick_color(nick),
-                                ui_nick_color(tokens[2]),
                                 nick,
                                 tokens[3],
+                                ui_nick_color(tokens[2]),
                                 tokens[2]
                         );
                         buffer_add(b, state, m);
@@ -320,22 +320,22 @@ react(Eria *state, Network *network, tokarr tokens)
                         (tokens[0] == NULL)
                       ? msg(
                                 "^<--^",
-                                "^%s^ was ^*_/kicked/_*^ from %s",
+                                "^%^ was ^*_/kicked/_*^ from %",
                                 C_QUIT,
                                 ui_nick_color(tokens[3]),
-                                C_QUIT,
                                 tokens[3],
+                                C_QUIT,
                                 b->name
                         )
                       : msg(
                                 "^<--^",
-                                "^%s^ was ^*_/kicked/_*^ from %s by ^%s^",
+                                "^%^ was ^*_/kicked/_*^ from % by ^%^",
                                 C_QUIT,
                                 ui_nick_color(tokens[3]),
-                                C_QUIT,
-                                ui_nick_color(nick),
                                 tokens[3],
+                                C_QUIT,
                                 b->name,
+                                ui_nick_color(nick),
                                 nick
                         )
                 ;

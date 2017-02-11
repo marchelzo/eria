@@ -120,7 +120,7 @@ cmd_me(Eria *state, char const *arg)
         char const *nick = irc_mynick(ctx);
         Message *m = msg(
                 "^\\*^",
-                "^%s^ %s",
+                "^%^ %",
                 C_MISC,
                 ui_nick_color(nick),
                 nick,
@@ -211,6 +211,10 @@ enter(Eria *state)
         if (buffer->input.count == 0)
                 return;
 
+        char *line = alloc(buffer->input.count);
+        memcpy(line, input, buffer->input.count);
+        vec_push(buffer->history, line);
+
         for (int i = 0; i < buffer->input.count; ++i)
                 if (input[i] != '\0')
                         input[n++] = input[i];
@@ -234,7 +238,7 @@ enter(Eria *state)
                 else
                         irc_printf(ctx, "PRIVMSG %s :%s", state->window->buffer->name, input);
 
-                Message *m = msg("^%s^", "%s", ui_nick_color(nick), nick, input);
+                Message *m = msg("^%^", "%", ui_nick_color(nick), nick, input);
                 buffer_add(buffer, state, m);
         }
 

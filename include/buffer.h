@@ -16,6 +16,10 @@ typedef struct buffer {
         char *name;
         Network *network;
         vec(Message *) messages;
+
+        int hi; /* history index */
+        vec(char *) history;
+
         vec(char) input;
         int cursor;
         TSMap *tsm;

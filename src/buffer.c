@@ -17,6 +17,9 @@ buffer_new(char const *name, Network *network, int type)
         vec_init(b->messages);
         vec_init(b->input);
 
+        b->hi = 0;
+        vec_init(b->history);
+
         return b;
 }
 
