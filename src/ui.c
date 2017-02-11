@@ -2,6 +2,8 @@
 #define _DARWIN_C_SOURCE
 #endif
 
+#include <stdio.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
