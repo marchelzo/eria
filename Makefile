@@ -11,10 +11,12 @@ SOURCES = $(wildcard src/*.c)
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
+	@echo cc $<
+	@$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 eria: $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo cc $^
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(OBJECTS) eria

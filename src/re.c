@@ -268,6 +268,8 @@ tonfa(struct re_nfa *nfa, size_t start, struct re *re)
         case RE_CONCAT:
                 t = tonfa(nfa, start, re->left);
                 return tonfa(nfa, t, re->right);
+        default:
+                assert(!"oh fuck");
         }
 }
 
@@ -591,7 +593,7 @@ domatch(struct st const *state, char const *string, char const *begin)
                 }
 
                 if (f.state->one.s == NULL)
-                        return f.s;
+                        return (char *)f.s;
                 if (f.state->two.s != NULL && charmatch(&s, &f.state->two, begin))
                         stack[i++] = (struct frame){ .s = s, .state = f.state->two.s };
                 if (charmatch(&f.s, &f.state->one, begin))

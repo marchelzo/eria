@@ -558,7 +558,22 @@ jump_active(Eria *state)
 
         do {
                 next_buffer(state);
-        } while (!state->window->buffer->activity && state->window->buffer != save);
+        } while (
+                   (state->window->buffer->activity != A_IMPORTANT)
+                && (state->window->buffer != save)
+        );
+
+        /* if we found important activity, we're done */
+        if (state->window->buffer != save)
+                return;
+
+        /* nothing important, but we can look for normal activity */
+        do {
+                next_buffer(state);
+        } while (
+                   (state->window->buffer->activity != A_NORMAL)
+                && (state->window->buffer != save)
+        );
 }
 
 static void
