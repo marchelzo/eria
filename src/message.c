@@ -60,6 +60,7 @@ fmt(char * restrict dst, char const * restrict fmt, va_list *ap)
                         break;
                 case '%':;
                         char const *s = va_arg(*ap, char const *);
+                        if (s == NULL) s = "";
                         size_t n = strlen(s);
                         memcpy(dst, s, n);
                         dst += n;
