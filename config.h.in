@@ -41,5 +41,6 @@ static Config config = {
                 },
         },
 
-        .room_list_timeout = 300
+        .room_list_timeout = 300,
+        .quit_message = "kiwirc - an handmad irc cleint xd"
 };

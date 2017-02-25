@@ -10,6 +10,13 @@
 struct eria;
 typedef struct eria Eria;
 
+typedef struct input {
+        int cursor;
+        vec(char) data;
+        struct input *prev;
+        struct input *next;
+} Input;
+
 typedef struct buffer {
         enum { B_CHANNEL, B_SERVER, B_USER } type;
         enum { A_NONE, A_NORMAL, A_IMPORTANT } activity;
@@ -17,14 +24,15 @@ typedef struct buffer {
         Network *network;
         vec(Message *) messages;
 
-        int hi; /* history index */
-        vec(char *) history;
+        Input *input;
+        Input *last;
 
-        vec(char) input;
-        int cursor;
         TSMap *tsm;
         bool complete_again;
 } Buffer;
+
+Input *
+input_new(Input *prev, Input *next);
 
 Buffer *
 buffer_new(char const *name, Network *network, int type);

@@ -407,11 +407,11 @@ draw_window(Window *w, int *y, int *x)
 
                 term_mvprintf(&term, w->y + w->height - 1, w->x, v, "(%s) ", nick);
 
-                if (b->input.count != 0) {
-                        for (int i = 0; i < b->input.count; ++i) {
-                                if (b->input.items[i] != '\0')
-                                        vec_push(input, b->input.items[i]);
-                                if (i + 1 == b->cursor)
+                if (b->input->data.count != 0) {
+                        for (int i = 0; i < b->input->data.count; ++i) {
+                                if (b->input->data.items[i] != '\0')
+                                        vec_push(input, b->input->data.items[i]);
+                                if (i + 1 == b->input->cursor)
                                         cursor = input.count;
                         }
 

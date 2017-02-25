@@ -3,6 +3,17 @@
 #include "util.h"
 #include "tsmap.h"
 
+Input *
+input_new(Input *prev, Input *next)
+{
+        Input *input = alloc(sizeof *input);
+        input->prev = prev;
+        input->next = next;
+        input->cursor = 0;
+        vec_init(input->data);
+        return input;
+}
+
 Buffer *
 buffer_new(char const *name, Network *network, int type)
 {
@@ -10,16 +21,11 @@ buffer_new(char const *name, Network *network, int type)
 
         b->name = sclone(name);
         b->network = network;
-        b->cursor = 0;
         b->activity = A_NONE;
         b->type = type;
         b->tsm = tsmap_new();
         vec_init(b->messages);
-        vec_init(b->input);
-
-        b->hi = 0;
-        vec_init(b->history);
-
+        b->input = b->last = input_new(NULL, NULL);
         return b;
 }
 

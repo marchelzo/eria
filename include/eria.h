@@ -37,6 +37,7 @@ typedef struct {
 typedef struct {
         NetworkConfig networks[ERIA_MAX_NETWORKS + 1];
         intmax_t room_list_timeout;
+        char const *quit_message;
 } Config;
 
 typedef struct eria {

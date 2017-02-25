@@ -14,11 +14,14 @@
 typedef void (Action)(Eria *);
 
 static void
-quit(Eria *state)
+quit(Eria *state, char const *msg)
 {
+        if (msg == NULL)
+                msg = "c u l8r friends~";
+
         for (int i = 0; i < state->networks.count; ++i) {
                 Network *network = state->networks.items[i];
-                irc_printf(network->connection, "QUIT");
+                irc_printf(network->connection, "QUIT :%s", msg);
         }
 
         ui_cleanup();
@@ -27,78 +30,107 @@ quit(Eria *state)
 }
 
 static void
+default_quit(Eria *state)
+{
+        quit(state, state->config->quit_message);
+}
+
+static void
 backspace(Eria *state)
 {
-        int cursor = state->window->buffer->cursor;
-        char *input = state->window->buffer->input.items;
-        int bytes = state->window->buffer->input.count;
+        Input *input = state->window->buffer->input;
+        int cursor = input->cursor;
+        char *data = input->data.items;
+        int bytes = input->data.count;
 
         if (cursor == 0)
                 return;
 
         int i = cursor - 1;
-        while (i > 0 && input[i - 1] != '\0')
+        while (i > 0 && data[i - 1] != '\0')
                 --i;
 
-        memmove(input + i, input + cursor, bytes - cursor);
-        state->window->buffer->input.count -= cursor - i;
-        state->window->buffer->cursor = i;
+        memmove(data + i, data + cursor, bytes - cursor);
+
+        input->data.count -= cursor - i;
+        input->cursor = i;
 }
 
 static void
 left(Eria *state)
 {
-        char const *input = state->window->buffer->input.items;
-        int *cursor = &state->window->buffer->cursor;
+        Input *input = state->window->buffer->input;
+
+        char const *data = input->data.items;
+        int *cursor = &input->cursor;
 
         if (*cursor == 0)
                 return;
 
-        while (--*cursor != 0 && input[*cursor - 1] != '\0')
+        while (--*cursor != 0 && data[*cursor - 1] != '\0')
                 ;
 }
 
 static void
 right(Eria *state)
 {
-        char const *input = state->window->buffer->input.items;
-        int *cursor = &state->window->buffer->cursor;
+        Input *input = state->window->buffer->input;
 
-        if (*cursor == state->window->buffer->input.count)
+        char const *data = input->data.items;
+        int *cursor = &input->cursor;
+
+        if (*cursor == input->data.count)
                 return;
 
-        *cursor += strlen(input + *cursor) + 1;
+        *cursor += strlen(data + *cursor) + 1;
 }
 
 static void
 goto_start(Eria *state)
 {
-        state->window->buffer->cursor = 0;
+        state->window->buffer->input->cursor = 0;
 }
 
 static void
 goto_end(Eria *state)
 {
-        state->window->buffer->cursor = state->window->buffer->input.count;
+        Input *input = state->window->buffer->input;
+        input->cursor = input->data.count;
 }
 
 static void
 cut_rest(Eria *state)
 {
-        state->window->buffer->input.count = state->window->buffer->cursor;
+        Input *input = state->window->buffer->input;
+        input->data.count = input->cursor;
+}
+
+static void
+cmd_quit(Eria *state, char const *arg)
+{
+        if (arg != NULL)
+                quit(state, state->config->quit_message);
+        else
+                quit(state, arg);
 }
 
 static void
 cmd_join(Eria *state, char const *arg)
 {
+        if (arg == NULL)
+                return;
+
         Network *network = state->window->buffer->network;
         irc *ctx = network->connection;
-        irc_printf(ctx, "JOIN :%s", arg);
+        irc_printf(ctx, "JOIN %s", arg);
 }
 
 static void
 cmd_mode(Eria *state, char const *arg)
 {
+        if (arg == NULL)
+                return;
+
         Buffer *b = state->window->buffer;
         Network *network = b->network;
         irc *ctx = network->connection;
@@ -113,10 +145,13 @@ cmd_mode(Eria *state, char const *arg)
 static void
 cmd_me(Eria *state, char const *arg)
 {
+        if (arg == NULL)
+                return;
+
         Buffer *b = state->window->buffer;
         Network *network = b->network;
         irc *ctx = network->connection;
-        irc_printf(ctx, "PRIVMSG %s :\001ACTION %s", b->name, arg);
+        irc_printf(ctx, "PRIVMSG %s :\001ACTION %s\001", b->name, arg);
         char const *nick = irc_mynick(ctx);
         Message *m = msg(
                 "^\\*^",
@@ -134,6 +169,9 @@ cmd_msg(Eria *state, char const *arg)
 {
         char target[64];
         int n;
+
+        if (arg == NULL)
+                return;
 
         sscanf(arg, "%63s %n", target, &n);
 
@@ -180,6 +218,7 @@ command(Eria *state, char const *name, char const *arg)
                 { "me",         cmd_me         },
                 { "mode",       cmd_mode       },
                 { "msg",        cmd_msg        },
+                { "quit",       cmd_quit       },
                 { "reconnect",  cmd_reconnect  },
                 { "top",        cmd_top        },
         };
@@ -204,46 +243,55 @@ command(Eria *state, char const *name, char const *arg)
 static void
 enter(Eria *state)
 {
-        int n = 0;
         Buffer *buffer = state->window->buffer;
-        char *input = buffer->input.items;
+        Input *input = buffer->input;
+        char *data = input->data.items;
 
-        if (buffer->input.count == 0)
+        static vec(char) ib;
+        ib.count = 0;
+
+        if (input->data.count == 0)
                 return;
 
-        char *line = alloc(buffer->input.count);
-        memcpy(line, input, buffer->input.count);
-        vec_push(buffer->history, line);
+        for (int i = 0; i < input->data.count; ++i)
+                if (data[i] != '\0')
+                        vec_push(ib, data[i]);
+        vec_push(ib, '\0');
 
-        for (int i = 0; i < buffer->input.count; ++i)
-                if (input[i] != '\0')
-                        input[n++] = input[i];
-        input[n] = '\0';
+        data = ib.items;
 
-        if (input[0] == '/') {
-                char *space = strchr(input, ' ');
+        if (data[0] == '/' && data[1] != '/') {
+                char *space = strchr(data, ' ');
                 if (space == NULL) {
-                        command(state, input + 1, NULL);        
+                        command(state, data + 1, NULL);        
                 } else {
                         *space = '\0';
-                        command(state, input + 1, space + 1);
+                        command(state, data + 1, space + 1);
                 }
         } else {
+                if (data[0] == '/')
+                        ++data;
+
                 Network *network = buffer->network;
                 irc *ctx = network->connection;
                 char const *nick = irc_mynick(ctx);
 
                 if (buffer == network->buffers.items[0])
-                        irc_printf(ctx, "%s", input);
+                        irc_printf(ctx, "%s", data);
                 else
-                        irc_printf(ctx, "PRIVMSG %s :%s", state->window->buffer->name, input);
+                        irc_printf(ctx, "PRIVMSG %s :%s", state->window->buffer->name, data);
 
-                Message *m = msg("^%^", "%", ui_nick_color(nick), nick, input);
+                Message *m = msg("^%^", "%", ui_nick_color(nick), nick, data);
                 buffer_add(buffer, state, m);
         }
 
-        buffer->input.count = 0;
-        buffer->cursor = 0;
+        if (buffer->last->data.count != 0) {
+                Input *new = input_new(buffer->last, NULL);
+                buffer->last->next = new;
+                buffer->last = new;
+        }
+
+        buffer->input = buffer->last;
 }
 
 static void
@@ -497,15 +545,15 @@ complete(Eria *state)
         static char *p;
         p = prefix;
         char *end = p + sizeof prefix - 1;
-        char *input = buffer->input.items;
+        char *input = buffer->input->data.items;
 
-        int c = buffer->cursor;
+        int c = buffer->input->cursor;
         while (c > 0 && !isspace(input[c - 1]))
                 --c;
 
         start = (c == 0) ? 0 : c + 1;
 
-        while (p < end && c < buffer->cursor)
+        while (p < end && c < buffer->input->cursor)
                 if (input[c++] != '\0')
                         *p++ = input[c - 1];
         *p = '\0';
@@ -544,14 +592,14 @@ Next:
                 return;
         i = (i + 1) % nicks.count;
         char const *nick = nicks.items[i];
-        while (buffer->cursor != start)
+        while (buffer->input->cursor != start)
                 backspace(state);
         int cl = strlen(nick) + 1;
-        vec_insert_n(buffer->input, nick, cl, buffer->cursor);
-        buffer->cursor += cl;
+        vec_insert_n(buffer->input->data, nick, cl, buffer->input->cursor);
+        buffer->input->cursor += cl;
         if (start == 0) {
-                vec_insert_n(buffer->input, ": ", 3, buffer->cursor);
-                buffer->cursor += 3;
+                vec_insert_n(buffer->input->data, ": ", 3, buffer->input->cursor);
+                buffer->input->cursor += 3;
         }
 }
 
@@ -587,6 +635,24 @@ jump_server(Eria *state)
         state->redraw_timeout = state->config->room_list_timeout;
 }
 
+static void
+hist_prev(Eria *state)
+{
+        Buffer *b = state->window->buffer;
+
+        if (b->input->prev != NULL)
+                b->input = b->input->prev;
+}
+
+static void
+hist_next(Eria *state)
+{
+        Buffer *b = state->window->buffer;
+
+        if (b->input->next != NULL)
+                b->input = b->input->next;
+}
+
 struct {
         char const *key;
         Action *action;
@@ -594,7 +660,7 @@ struct {
         /* has to be sorted for binary search */
         { "Backspace",  backspace     },
         { "C-a",        goto_start    },
-        { "C-c",        quit          },
+        { "C-c",        default_quit  },
         { "C-d",        page_down     },
         { "C-e",        goto_end      },
         { "C-k",        cut_rest      },
@@ -607,6 +673,7 @@ struct {
         { "C-w",        leave_buffer  },
         { "C-x",        close_window  },
         { "DEL",        backspace     },
+        { "Down",       hist_next     },
         { "Enter",      enter         },
         { "Left",       left          },
         { "M-Left",     prev_buffer   },
@@ -619,6 +686,7 @@ struct {
         { "S-Right",    wright        },
         { "S-Up",       wup           },
         { "Tab",        complete      },
+        { "Up",         hist_prev     },
 };
 
 static Action *
@@ -651,9 +719,9 @@ handle_key(Eria *state, char const *s)
 void
 handle_text(Eria *state, char const *s)
 {
+        Input *input = state->window->buffer->input;
         int n = strlen(s) + 1;
-        int i = state->window->buffer->cursor;
-        vec_insert_n(state->window->buffer->input, s, n, i);
-        state->window->buffer->cursor += n;
+        vec_insert_n(input->data, s, n, input->cursor);
+        input->cursor += n;
         state->window->buffer->complete_again = false;
 }

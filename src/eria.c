@@ -199,6 +199,7 @@ react(Eria *state, Network *network, tokarr tokens)
 
                 char action[] = "\001ACTION";
                 if (strncmp(tokens[3], action, sizeof action - 1) == 0) {
+                        tokens[3][strlen(tokens[3]) - 1] = '\0';
                         m = msg("^\\*^", "^%^ %", C_MISC, ui_nick_color(nick), nick, tokens[3] + sizeof action);
                 } else {
                         m = msg("^%^", "%", ui_nick_color(nick), nick, tokens[3]);
@@ -374,6 +375,7 @@ h_quit(irc *ctx, tokarr *msg, size_t argc, bool pre)
 inline static void
 disconnected(Eria *state, Network *network)
 {
+        irc_connect(network->connection);
 }
 
 inline static void
@@ -385,9 +387,9 @@ consume(Eria *state, Network *network)
         for (;;) switch (irc_read(ctx, &tokens, 1)) {
         case  1: react(state, network, tokens); break;
         case  0:                                return;
-        case -1:                                goto dead;
+        case -1:                                goto Dead;
         }
-dead:
+Dead:
         disconnected(state, network);
 }
 
@@ -521,7 +523,7 @@ main(void)
                 if (irc_online(ctx)) {
                         char const **chan = config.networks[i].channels;
                         while (*chan != NULL)
-                                irc_printf(ctx, "JOIN :%s", *chan++);
+                                irc_printf(ctx, "JOIN %s", *chan++);
                 }
         }
 
@@ -559,7 +561,7 @@ main(void)
 
                 /* check for messages from the ircds we're connected to */
                 for (int i = 0; i < state.networks.count; ++i)
-                        if (state.fds[1 + i].revents & POLLIN)
+                        if (state.fds[1 + i].revents & (POLLIN | POLLHUP))
                                 consume(&state, state.networks.items[i]);
 
                 clear_activity(state.root);
