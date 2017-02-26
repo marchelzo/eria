@@ -477,6 +477,9 @@ main(void)
 
         /* initialize elapsed()'s state */
         elapsed();
+
+        /* very good */
+        system("mkdir -p ~/.eria/logs");
         
         ui_init(&state);
         state.window = state.root;

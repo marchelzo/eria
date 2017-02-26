@@ -17,4 +17,7 @@ typedef struct {
 Message *
 msg(char const *tfmt, char const *bfmt, ...);
 
+void
+msg_log(Message const *m, FILE *f);
+
 #endif

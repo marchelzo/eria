@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "util.h"
 #include "tsmap.h"
+#include "message.h"
 
 Input *
 input_new(Input *prev, Input *next)
@@ -26,6 +27,13 @@ buffer_new(char const *name, Network *network, int type)
         b->tsm = tsmap_new();
         vec_init(b->messages);
         b->input = b->last = input_new(NULL, NULL);
+
+        char path[4096];
+        char const *home = getenv("HOME");
+        snprintf(path, sizeof path, "%s/.eria/logs/%s.%s", home, network->name, name);
+
+        b->log = fopen(path, "a");
+
         return b;
 }
 
@@ -49,4 +57,7 @@ buffer_add(Buffer *b, Eria *state, Message *m)
 {
         vec_push(b->messages, m);
         scroll(state->root, b);
+
+        if (b->log != NULL)
+                msg_log(m, b->log);
 }

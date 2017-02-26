@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
 #include <assert.h>
@@ -101,4 +102,49 @@ msg(char const *tfmt, char const *bfmt, ...)
         msg->important = false;
 
         return msg;
+}
+
+static void
+write_sanitized(char const *s, FILE *f)
+{
+        for (char const *c = s; *c != '\0'; ++c) {
+                switch (*c) {
+                case 1:
+                case 2:
+                case 28:
+                case 29:
+                case 30:
+                case 31:
+                        break;
+                case 3:
+                        if (c[1] == '#')
+                                c += 15;
+                        else {
+                                if (isdigit(c[1])) ++c;
+                                if (isdigit(c[1])) ++c;
+                                if (c[1] == ',')   ++c;
+                                if (isdigit(c[1])) ++c;
+                                if (isdigit(c[1])) ++c;
+                        }
+                        break;
+                default:
+                        fputc(*c, f);
+                }
+        }
+}
+
+void
+msg_log(Message const *m, FILE *f)
+{
+        char time[64];
+        strftime(time, sizeof time, "%F %H:%M:%S", &m->time);
+
+        fputs(time, f);
+        fputc('\t', f);
+        write_sanitized(m->title, f);
+        fputc('\t', f);
+        write_sanitized(m->body, f);
+        fputc('\n', f);
+
+        fflush(f);
 }

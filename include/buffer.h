@@ -2,6 +2,7 @@
 #define BUFFER_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "network.h"
 #include "message.h"
@@ -26,6 +27,8 @@ typedef struct buffer {
 
         Input *input;
         Input *last;
+
+        FILE *log;
 
         TSMap *tsm;
         bool complete_again;
