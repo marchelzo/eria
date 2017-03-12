@@ -203,6 +203,15 @@ window_down(Window *w)
 }
 
 void
+window_resize(Window *w, int height, int width)
+{
+        w->height = height;
+        w->width = width;
+        hbalance(w);
+        vbalance(w);
+}
+
+void
 window_grow_y(Window *w, int dy)
 {
         Window *p = w->parent;

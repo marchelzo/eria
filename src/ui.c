@@ -27,6 +27,7 @@
 #define LEFT_MARGIN (MAX_NICK + TIME_LEN + 1 + 3)
 
 static Term term;
+static Window *root;
 
 inline static double
 hue_to_rgb(double p, double q, double t)
@@ -235,6 +236,11 @@ sigwinch(int s)
         } else {
                 L("failed to get new terminal size");
         }
+
+        if (root != NULL)
+                window_resize(root, ws.ws_row, ws.ws_col);
+
+        term.force = true;
 }
 
 static int
@@ -463,7 +469,7 @@ ui_init(Eria *state)
 {
         sigwinch(SIGWINCH);
         signal(SIGWINCH, sigwinch);
-        state->root = window_root(term.rows, term.cols);
+        root = state->root = window_root(term.rows, term.cols);
 
         struct termios tp;
         tcgetattr(STDIN_FILENO, &tp);

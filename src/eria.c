@@ -181,8 +181,8 @@ react(Eria *state, Network *network, tokarr tokens)
 
                 if (strcmp(me, tokens[2]) == 0) {
                         userrep u;
-                        irc_user(ctx, &u, nick);
-                        b = u.tag;
+                        if (irc_user(ctx, &u, nick) != NULL)
+                                b = u.tag;
                         if (b == NULL) {
                                 b = buffer_new(sclone(nick), network, B_USER);
                                 vec_push(network->buffers, b);
@@ -191,7 +191,8 @@ react(Eria *state, Network *network, tokarr tokens)
                         }
                 } else {
                         chanrep chan;
-                        irc_chan(ctx, &chan, tokens[2]);
+                        if (irc_chan(ctx, &chan, tokens[2]) == NULL || chan.tag == NULL)
+                                return;
                         b = chan.tag;
                 }
 
@@ -499,15 +500,12 @@ main(void)
         pthread_t threads[ERIA_MAX_NETWORKS];
         for (int i = 0; i < state.networks.count; ++i) {
                 irc *ctx = state.networks.items[i]->connection;
-                /*
                 int e = pthread_create(&threads[i], NULL, try_connect, ctx);
                 if (e != 0)
                         panic("failed to spawn thread during startup: %s", strerror(e));
-                        */
         }
 
         for (int i = 0; i < state.networks.count; ++i) {
-                /*
                 void *good;
                 int e = pthread_join(threads[i], &good);
                 if (e != 0)
@@ -515,8 +513,6 @@ main(void)
                 if (!good)
                         fprintf(stderr, "warning: couldn't connect to %s:%hu\n",
                            config.networks[i].server, config.networks[i].port);
-                           */
-                irc_connect(state.networks.items[i]->connection);
         }
 
         /* autojoin channels */

@@ -50,6 +50,9 @@ void
 window_set_width(Window *w, int width);
 
 void
+window_resize(Window *w, int height, int width);
+
+void
 window_grow_x(Window *w, int dx);
 
 void

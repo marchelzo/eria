@@ -483,6 +483,9 @@ leave_buffer(Eria *state)
         if (buffer->type == B_CHANNEL)
                 irc_printf(ctx, "PART %s :%s", buffer->name, "Leaving");
 
+        if (buffer->type == B_USER)
+                irc_tag_user(ctx, buffer->name, NULL, false);
+
         int i = 1;
         while (network->buffers.items[i] != buffer)
                 ++i;

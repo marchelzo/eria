@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include "vec.h"
 
 typedef struct {
@@ -31,6 +32,7 @@ typedef struct {
         int y;
         int x;
         unsigned i : 1;
+        bool force;
         Cell *buffers[2];
         Video video;
         vec(char) buffer;

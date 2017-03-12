@@ -151,7 +151,7 @@ changed(Term const *t, int y)
 static void
 render_line(Term *t, int y)
 {
-        if (!changed(t, y))
+        if (!t->force && !changed(t, y))
                 return;
 
         if (!video_equal(t->video, V_NORMAL)) {
@@ -289,4 +289,5 @@ term_flush(Term *t)
         memcpy(t->buffers[!t->i], t->buffers[t->i], size);
 
         t->i += 1;
+        t->force = false;
 }
