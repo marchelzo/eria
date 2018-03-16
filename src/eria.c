@@ -145,6 +145,15 @@ user_do_all_chans(irc *ctx, char const *ident, int type, ...)
         va_end(ap);
 }
 
+static Buffer *
+find_buffer(Network const *network, char const *name)
+{
+        for (int i = 0; i < network->buffers.count; ++i)
+                if (strcmp(network->buffers.items[i]->name, name) == 0)
+                        return network->buffers.items[i];
+        return NULL;
+}
+
 static void
 react(Eria *state, Network *network, tokarr tokens)
 {
@@ -221,7 +230,9 @@ react(Eria *state, Network *network, tokarr tokens)
 
         CASE(JOIN)
                 if (strcmp(me, nick) == 0) {
-                        Buffer *b = buffer_new(tokens[2], network, B_CHANNEL);
+                        Buffer *b = find_buffer(network, tokens[2]);
+                        if (b == NULL)
+                                b = buffer_new(tokens[2], network, B_CHANNEL);
                         irc_tag_chan(ctx, tokens[2], b, false);
                         vec_push(network->buffers, b);
                         state->window->buffer = b;
@@ -314,10 +325,9 @@ react(Eria *state, Network *network, tokarr tokens)
         END
 
         CASE(KICK)
-                chanrep chan;
-                assert(irc_chan(ctx, &chan, tokens[2]) != NULL);
-                Buffer *b = chan.tag;
-                assert(b != NULL);
+                Buffer *b = find_buffer(network, tokens[2]);
+                if (b == NULL)
+                        return;
                 Message *m =
                         (tokens[0] == NULL)
                       ? msg(

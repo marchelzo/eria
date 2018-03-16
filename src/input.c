@@ -224,7 +224,7 @@ command(Eria *state, char const *name, char const *arg)
         };
 
         int lo = 0,
-            hi = COUNTOF(cmds);
+            hi = COUNTOF(cmds) - 1;
 
         void (*cmd)(Eria *, char const *) = NULL;
 
