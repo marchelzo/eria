@@ -1,5 +1,11 @@
-CFLAGS  = -std=c11 -ggdb3 -fsanitize=undefined -Wall -isystem /usr/local/opt/ncurses/include -isystem /usr/local/include -Wno-unused -fmax-errors=1 -Iinclude -I.
+CFLAGS  = -std=c11 -Wall -Wno-bool-operation -isystem /usr/local/opt/ncurses/include -isystem /usr/local/include -Wno-unused -fmax-errors=1 -Iinclude -I.
 LDFLAGS = -L/usr/local/lib -ltermkey -lsrsirc -lm
+
+ifdef RELEASE
+	CFLAGS += -O3 -flto
+else
+	CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined
+endif
 
 MAX_NETWORKS ?= 16
 MAX_AUTOJOIN ?= 16

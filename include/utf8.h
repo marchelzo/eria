@@ -78,7 +78,7 @@ utf8_fit(char const *str, int len, int cols)
 
                 /* handle color codes -- bad! */
                 if (str[0] == 3) {
-                        if (str[1] == '#') {
+                        if (len > 1 && str[1] == '#') {
                                 if (len > 16)
                                         bytes = 16;
                                 else

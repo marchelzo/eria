@@ -407,6 +407,18 @@ resize_window(Eria *state)
 }
 
 static void
+search_window(Eria *state)
+{
+        --state->window->search;
+}
+
+static void
+show_nicks(Eria *state)
+{
+        --state->window->nicks;
+}
+
+static void
 wdown(Eria *state)
 {
         if (state->window->resize) {
@@ -495,7 +507,7 @@ leave_buffer(Eria *state)
         memmove(
                 network->buffers.items + i,
                 network->buffers.items + i + 1,
-                (network->buffers.count - i - 1) * sizeof (Buffer)
+                (network->buffers.count - i - 1) * sizeof (Buffer *)
         );
 
         --network->buffers.count;
@@ -666,11 +678,12 @@ struct {
         { "C-c",        default_quit  },
         { "C-d",        page_down     },
         { "C-e",        goto_end      },
+        { "C-f",        show_nicks    },
         { "C-k",        cut_rest      },
         { "C-n",        jump_active   },
         { "C-q",        hsplit        },
         { "C-r",        resize_window },
-        { "C-s",        jump_server   },
+        { "C-s",        search_window },
         { "C-u",        page_up       },
         { "C-v",        vsplit        },
         { "C-w",        leave_buffer  },

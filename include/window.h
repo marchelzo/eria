@@ -30,6 +30,8 @@ struct window {
                         Buffer *buffer;
                         int scroll;
                         bool resize;
+                        bool search;
+                        bool nicks;
                 };
         };
 };

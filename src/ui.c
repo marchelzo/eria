@@ -362,12 +362,54 @@ draw_window(Window *w, int *y, int *x)
                 irc *ctx = network->connection;
                 char const *nick = irc_mynick(ctx);
 
-                int row = w->height - 3;
-                int mi = b->messages.count - (w->scroll + 1);
+                static vec(char) ib;
+                ib.count = 0;
 
-                while (mi >= 0 && row >= 0) {
-                        row -= draw_message(w, b->messages.items[mi], row);
-                        mi -= 1;
+                for (int i = 0; i < b->input->data.count; ++i)
+                        if (b->input->data.items[i] != '\0')
+                                vec_push(ib, b->input->data.items[i]);
+                vec_push(ib, '\0');
+
+                int row = w->height - 3;
+
+                if (w->nicks && b->type == B_CHANNEL) {
+                        static size_t user_capacity = 0;
+                        static userrep *users = NULL;
+
+                        int n_users = irc_num_members(b->network->connection, b->name);
+
+                        if (n_users > user_capacity) {
+                                user_capacity = n_users;
+                                resize(users, user_capacity * sizeof *users);
+                        }
+
+                        irc_all_members(b->network->connection, b->name, users, user_capacity);
+
+                        int i = n_users - (w->scroll + 1);
+                        char title[64];
+                        char body[256];
+                        Message m = { .title = title, .body = body };
+
+                        while (i >= 0 && row >= 0) {
+                                bool show = !w->search || strstr(users[i].nick, ib.items);
+                                if (show) {
+                                        sprintf(title, "%d", i + 1);
+                                        strcpy(body, users[i].nick);
+                                        row -= draw_message(w, &m, row);
+                                }
+                                i -= 1;
+                        }
+                } else {
+                        int i = b->messages.count - (w->scroll + 1);
+                        while (i >= 0 && row >= 0) {
+                                bool show = !w->search
+                                         || strstr(b->messages.items[i]->body, ib.items)
+                                         || strstr(b->messages.items[i]->title, ib.items);
+                                if (show) {
+                                        row -= draw_message(w, b->messages.items[i], row);
+                                }
+                                i -= 1;
+                        }
                 }
 
                 char status[512];
@@ -391,6 +433,12 @@ draw_window(Window *w, int *y, int *x)
 
                 if (w->resize)
                         strcat(status, " (resize)");
+
+                if (w->search)
+                        strcat(status, " (search)");
+
+                if (w->nicks)
+                        strcat(status, " (nicks)");
 
                 int n = strlen(status);
                 int width = utf8_width(status, n);

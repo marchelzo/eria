@@ -25,6 +25,8 @@ new(Window *parent, int height, int width, int y, int x)
         w->buffer = NULL;
         w->scroll = 0;
         w->resize = false;
+        w->search = false;
+        w->nicks = false;
 
         return w;
 }

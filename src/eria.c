@@ -324,6 +324,19 @@ react(Eria *state, Network *network, tokarr tokens)
                 }
         END
 
+        CASE(332)
+                Buffer *b = find_buffer(network, tokens[3]);
+                if (b == NULL)
+                        return;
+                Message *m = msg(
+                        "^[topic]^",
+                        "%",
+                        C_TOPIC,
+                        tokens[4]
+                );
+                buffer_add(b, state, m);
+        END
+
         CASE(KICK)
                 Buffer *b = find_buffer(network, tokens[2]);
                 if (b == NULL)

@@ -7,6 +7,7 @@
 #define C_QUIT      ((Color) { 240, 60,  60  })
 #define C_JOIN      ((Color) { 60,  240, 60  })
 #define C_MISC      ((Color) { 233, 45,  250 })
+#define C_TOPIC     ((Color) { 249, 247, 102 })
 #define C_JOIN_TEXT ((Color) { 170, 227, 120 })
 #define C_QUIT_TEXT ((Color) { 224, 141, 145 })
 
