@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #ifdef __APPLE__
 #define _DARWIN_C_SOURCE
 #endif
@@ -516,7 +518,9 @@ void
 ui_init(Eria *state)
 {
         sigwinch(SIGWINCH);
-        signal(SIGWINCH, sigwinch);
+        struct sigaction const sa = { .sa_handler = sigwinch };
+        sigaction(SIGWINCH, &sa, NULL);
+
         root = state->root = window_root(term.rows, term.cols);
 
         struct termios tp;
