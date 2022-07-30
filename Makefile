@@ -1,5 +1,5 @@
 CFLAGS  = -std=c11 -Wall -Wno-bool-operation -isystem /usr/local/opt/ncurses/include -isystem /usr/local/include -Wno-unused -fmax-errors=1 -Iinclude -I.
-LDFLAGS = -L/usr/local/lib -ltermkey -lsrsirc -lm
+LDFLAGS = -L/usr/local/lib -ltermkey -lsrsirc -lm -lpthread
 
 ifdef RELEASE
 	CFLAGS += -O3 -flto

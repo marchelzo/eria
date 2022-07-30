@@ -188,7 +188,7 @@ drawtext(char const *s, int n, Video v)
                 v.bold = false;
                 break;
         case 2:
-                v.bold = true;
+                v.bold = !v.bold;
                 break;
         case 3:;
                 Color fg = colorcode(&s);
@@ -201,20 +201,20 @@ drawtext(char const *s, int n, Video v)
         case 15:
                 v = dv;
                 break;
-        case 18:
-                v.reverse = true;
+        case 22:
+                v.reverse = !v.reverse;
                 break;
         case 28:
                 v.italic = false;
                 break;
         case 29:
-                v.italic = true;
+                v.italic = !v.italic;
                 break;
         case 30:
                 v.underline = false;
                 break;
         case 31:
-                v.underline = true;
+                v.underline = !v.underline;
                 break;
         default:
                 --s;
